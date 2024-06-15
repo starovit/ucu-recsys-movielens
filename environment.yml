@@ -94,4 +94,4 @@ dependencies:
   - zipp=3.19.2
   - zlib=1.2.13
   - zstd=1.5.5
-prefix: /Users/ivanstarovit/miniconda3/envs/ucu-recsys
+prefix: /Users/yuriivoievidka/miniconda3/envs/ucu-recsys
