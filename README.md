@@ -9,3 +9,12 @@ To create the Conda environment from the configuration file, run the following c
 ```sh
 conda env create -f environment.yml
 ```
+
+## Install src:
+```sh
+python -m pip install -e src
+```
+Example usage:
+```sh
+from src.utils import cosine_similarity
+```
