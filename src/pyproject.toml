@@ -1,3 +1,15 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "src"
+version = "0.1.0"
+description = "A recommender system package for educational purposes"
+license = { file = "LICENSE" }
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = [
+    "pandas>=1.1",
+    "numpy>=1.19",
+]
