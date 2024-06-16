@@ -1,10 +1,13 @@
-Jupyter notebook with the experiment that evaluates baseline recommender: **baseline_with_metrics.ipynb**. The Jupyter notebook demonstrates mean-rating recommender with all metrics using different data splits (e.g., random, ordered, or user-based splitting).
+Jupyter notebook with the experiment that evaluates baseline recommender:
+- **baseline_with_metrics.ipynb**.
+The Jupyter notebook demonstrates mean-rating recommender with all metrics using different data splits (e.g., random, ordered, or user-based splitting).
 Evaluation will be made mostly by ML metrics:
 - Predictive metrics like precision and recall at k are significantly affected by this sparsity of the dataset.
 - Rank metrics such as Mean Reciprocal Rank (MRR) and Hit Rate are sensitive to user bias in ratings.
 
-## Baseline model**
+## Baseline model
 - A simple baseline model such as the mean-rating recommender. This model predicts the average rating of a movie based on historical ratings.
+
 **Implementation**:
 ```python
 class BaseModelAverage:
