@@ -85,4 +85,69 @@ class ItemItemModel:
             if film_rate > 0:
                 rates_that_users_given.append(film_rate)
 
-        return rates_that_users_given, indexes_of_similar_items
+        return films_to_recommend, indexes_of_similar_users
+
+    def find_only_highly_rated_movies(self, films_to_check, indexes_of_similar_users, average_rating_threashold=4):
+        filtered_recommendations = set()
+
+        for film_index in films_to_check:
+            all_film_rates = []
+            for similar_user_index in indexes_of_similar_users:
+                film = self._ratings_df[self._ratings_df['MovieID'] == film_index]
+                if similar_user_index < len(film['Rating']):
+                    rating = film['Rating'].iloc[similar_user_index]
+                    all_film_rates.append(rating)
+
+            average_rating = np.mean(all_film_rates)
+            if average_rating >= average_rating_threashold:
+                filtered_recommendations.add(film_index)
+
+        return filtered_recommendations
+    
+
+class UserUserModel:
+    def __init__(self, df: pd.DataFrame) -> None:
+        self.rating_matrix = df.pivot_table(index='UserID', columns='MovieID',\
+                                  values='Rating', fill_value=0)
+        self.neighbors_dict = {}
+
+
+    def fit(self):
+        """"
+        Calculate user similarity and order all neighbours by similarity. Order is saving in neighbours_dict of instance 
+        """
+        user_similarity = pd.DataFrame(cosine_similarity(self.rating_matrix), index=self.rating_matrix.index,
+                                  columns=self.rating_matrix.index)
+        for i in range(user_similarity.shape[0]):
+            row = user_similarity.iloc[i]
+            user = row.index[i]
+            row = row[row.index != user]
+            neighbors = list(np.argsort(row)[::-1])
+            self.neighbors_dict[user] = neighbors
+        return self
+
+    
+    def predict(self, df: pd.DataFrame, n_closest_users: int):
+        """
+        Params 
+            df:                 DataFrame with users and movies
+            n_closest_users:    how many closest users will be used for prediction
+        """
+        predict = []
+        for _, row in df.iterrows():
+            user = row["UserID"]
+            movie = row["MovieID"]
+            user_neighbors = self.neighbors_dict[user][:n_closest_users]
+            filtered_df = self.rating_matrix[self.rating_matrix.index.isin(user_neighbors)]
+            filtered_df = filtered_df.loc[:, movie]
+            pred = filtered_df[filtered_df != 0].mean()
+            predict.append(pred)
+        return predict
+    
+
+    def predict_for_user(self, user_id: int, n_closest_users=30, n_movies=10):
+        user_neighbors = self.neighbors_dict[user_id][:n_closest_users]
+        filtered_df = self.rating_matrix[self.rating_matrix.index.isin(user_neighbors)]
+        pred = filtered_df[filtered_df != 0].mean()
+        movies = pred[pred.notna()].sort_values(ascending=False)
+        return movies[:n_movies].index.values
