@@ -3,7 +3,7 @@ Evaluation will be made mostly by ML metrics:
 - Predictive metrics like precision and recall at k are significantly affected by this sparsity of the dataset.
 - Rank metrics such as Mean Reciprocal Rank (MRR) and Hit Rate are sensitive to user bias in ratings.
 
-**Baseline model description:**
+## Baseline model**
 - A simple baseline model such as the mean-rating recommender. This model predicts the average rating of a movie based on historical ratings.
 **Implementation**:
 ```python
@@ -23,10 +23,6 @@ from src.models import BaseModelAverage
 ## Metrics
 **Metrics categories which were implemented:**
 1. **Machine Learning Metrics**: MAE, RMSE, Precision, Recall, F1-Score, and ROC-AUC;
-2. **Ranking Metrics**: Mean Reciprocal Rank (MRR), Hit Rate. Measure how well the recommender ranks relevant items.
-3. **Predictive Metrics**: Precision at K, Recall at K, and Average Precision at K.
-Threshold is used to convert scores to categorical values. K can be speficied.
-**Implementation**:
 ```python
 def ml_metrics(true_scores, predicted_scores, threshold=4):
     .....
@@ -38,7 +34,9 @@ def ml_metrics(true_scores, predicted_scores, threshold=4):
         "f1": round(f1_score(true_scores_cat, predicted_scores_cat), 3),
         "roc_auc": round(roc_auc_score(true_scores_cat, predicted_scores_cat), 3)
     }
-
+```
+2. **Ranking Metrics**: Mean Reciprocal Rank (MRR), Hit Rate. Measure how well the recommender ranks relevant items.
+```python
 def predictive_metrics(test: pd.DataFrame, predicted_scores, 
                        k=10, threshold=4):
     
@@ -55,7 +53,10 @@ def predictive_metrics(test: pd.DataFrame, predicted_scores,
             "avrg_prec_at_k": round(avrg_prec_at_k, 3),
             "n_users_with_k": n_users_with_k
             }
-
+```
+3. **Predictive Metrics**: Precision at K, Recall at K, and Average Precision at K.
+Threshold is used to convert scores to categorical values. K can be speficied.
+```python
 def rank_metrics(test: pd.DataFrame, predicted_scores,  k=10, threshold=4):
     df = test.copy()
     df["RatingPred"] = predicted_scores
@@ -65,6 +66,7 @@ def rank_metrics(test: pd.DataFrame, predicted_scores,  k=10, threshold=4):
             "hit_rate": round(hit_r, 3)
             }
 ```
+
 **Usage**:
 ```python
 from src.metrics import ml_metrics, predictive_metrics, rank_metrics
