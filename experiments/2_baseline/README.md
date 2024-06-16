@@ -1,6 +1,5 @@
-Jupyter notebook with the experiment that evaluates baseline recommender:
+Jupyter notebook with the experiment that evaluates baseline recommender (demonstrates mean-rating recommender with all metrics using different data splits (e.g., random, ordered, or user-based splitting).):
 - **baseline_with_metrics.ipynb**.
-The Jupyter notebook demonstrates mean-rating recommender with all metrics using different data splits (e.g., random, ordered, or user-based splitting).
 
 Evaluation will be made mostly by ML metrics:
 1. Predictive metrics like precision and recall at k are significantly affected by this sparsity of the dataset.
