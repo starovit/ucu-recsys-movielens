@@ -30,6 +30,7 @@ class ContentBasedModel:
 
     def fit(self, df_movies):
         self._movies_df = df_movies.copy()
+        self._movies_df['Genres'] = self._movies_df['Genres'].str.replace('|',' ')
         self._movies_df['Genres'] = self._movies_df['Genres'].str.replace('Sci-Fi', 'SciFi')
         self._movies_df['Genres'] = self._movies_df['Genres'].str.replace('Film-Noir', 'Noir')
         self._movies_df['Genres'] = self._movies_df['Genres'].str.replace('Children\'s', 'Child')
@@ -51,34 +52,38 @@ class ContentBasedModel:
 
 
 class ItemItemModel:
-    def __init__(self, rading_df: pd.DataFrame, num_of_similar_users=5):
-        self._num_of_similar_users = num_of_similar_users
-        self._ratings_df = rading_df.copy
+    def __init__(self, num_of_similar_items=5):
+        self._num_of_similar_items = num_of_similar_items
         self._sim_matrix = {}
+        self._ratings_df = pd.DataFrame()
         self._user_movie_matrix = pd.DataFrame()
 
-    def fit(self) -> None:
-        self._user_movie_matrix = self._ratings_df.pivot_table(index='UserID', columns='MovieID', values='Rating',
+    def fit(self, rading_df: pd.DataFrame) -> None:
+        # currently we have Movies on x axes and Users on Y axes. We should transpose this matrix
+        self._ratings_df = rading_df.copy()
+        self._user_movie_matrix = self._ratings_df.pivot_table(index='UserID',
+                                                               columns='MovieID',
+                                                               values='Rating',
                                                                fill_value=0)
         self._sim_matrix = cosine_similarity(self._user_movie_matrix)
 
-    def predict(self, user_id) -> set[Any]:
 
-        films_to_recommend, indexes_of_similar_users = self.find_films_that_other_users_like_but_current_user_havent_watched(user_id)
-        filtered_recommendations = self.find_only_highly_rated_movies(films_to_recommend, indexes_of_similar_users)
+    def predict(self, user_id, film_id, average_rating_threashold=4) -> set[Any]:
 
-        return filtered_recommendations
+        rates_that_users_given, indexes_of_similar_items = self.__find_films_that_other_users_like_but_current_user_havent_watched(user_id, film_id)
+        rates_that_users_given = np.array(rates_that_users_given)
+        filtered_rates = [rate for rate in rates_that_users_given if rate >= average_rating_threashold]
+        return np.mean(filtered_rates), indexes_of_similar_items
 
-    def find_films_that_other_users_like_but_current_user_havent_watched(self, user_id, num_of_similar_users = 10):
-        current_user = self._sim_matrix[user_id]
-        indexes_of_similar_users = current_user.argsort()[::-1][:self._num_of_similar_users]
+    def __find_films_that_other_users_like_but_current_user_havent_watched(self, user_id, film_id):
+        current_user = self._sim_matrix[film_id]
+        indexes_of_similar_items = current_user.argsort()[::-1][:self._num_of_similar_items]
 
-        films_to_recommend = set()
-        for similar_user_index in indexes_of_similar_users:
-            film_rates = self._user_movie_matrix.iloc[similar_user_index]
-            for film_index, film_rate in film_rates.items():
-                if self._user_movie_matrix.iloc[user_id][film_index] == 0 and film_rate != 0:
-                    films_to_recommend.add(film_index)
+        rates_that_users_given = []
+        for similar_item_index in indexes_of_similar_items:
+            film_rate = self._user_movie_matrix.iloc[similar_item_index][film_id]
+            if film_rate > 0:
+                rates_that_users_given.append(film_rate)
 
         return films_to_recommend, indexes_of_similar_users
 
