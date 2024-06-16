@@ -113,13 +113,13 @@ def mean_reciprocal_rank(df, threshold=4):
             total_users += 1
     return mrr / total_users if total_users > 0 else 0
 
-def hit_rate(df, k, rating_threshold=4, min_items_for_hit=1):
+def hit_rate(df, k, threshold=4, min_items_for_hit=1):
     hits = 0
     total_users = 0
     for _, group in df.groupby('UserID'):
         sorted_group = group.sort_values(by='RatingPred', ascending=False)
         top_k = sorted_group.head(k)
-        if np.sum(top_k['Rating'] >= rating_threshold) >= min_items_for_hit:
+        if np.sum(top_k['Rating'] >= threshold) >= min_items_for_hit:
             hits += 1
         total_users += 1
 

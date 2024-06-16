@@ -66,3 +66,7 @@ def rank_metrics(test: pd.DataFrame, predicted_scores,  k=10, threshold=4):
 ```python
 from src.metrics import ml_metrics, predictive_metrics, rank_metrics
 ```
+
+## Additional
+
+- **baseline_for_cold_start.ipynb** - shows models example when we don't have any information for new user.
