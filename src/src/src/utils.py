@@ -31,11 +31,29 @@ class TrainTestSplitter:
     @classmethod
     def split_by_percent(self, df, percent=0.8, random_split=False):
         if random_split:
-            df = df.sample(frac=1)
+            df = df.sample(frac=1, random_state=1)
         split_index = int(df.shape[0] * percent)
         train = df.iloc[:split_index]
         test = df.iloc[split_index:]
         return train, test
+    
+    @classmethod
+    def split_by_users(self, df, n_reviews_in_test=10):
+        train_list, test_list = zip(*df.groupby('UserID').apply(self.split_user_reviews, n_reviews_in_test))
+        # Concatenate the list of DataFrames into a single DataFrame for train and test
+        train = pd.concat([x for x in train_list if x is not None])
+        test = pd.concat([x for x in test_list if x is not None])
+        return train, test
+
+
+    def split_user_reviews(group, n_reviews_in_test):
+        if len(group) > n_reviews_in_test:
+            return group.iloc[:-10], group.iloc[-10:]
+        else:
+            return group, None
+
+
+
 
 
 def cosine_similarity(vector1, vector2):
