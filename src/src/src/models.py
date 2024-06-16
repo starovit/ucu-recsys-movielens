@@ -51,50 +51,54 @@ class ContentBasedModel:
 
 
 class ItemItemModel:
-    def __init__(self, rading_df: pd.DataFrame, num_of_similar_users=5):
+    def __init__(self, num_of_similar_users=5):
         self._num_of_similar_users = num_of_similar_users
-        self._ratings_df = rading_df.copy
         self._sim_matrix = {}
+        self._ratings_df = pd.DataFrame()
         self._user_movie_matrix = pd.DataFrame()
 
-    def fit(self) -> None:
-        self._user_movie_matrix = self._ratings_df.pivot_table(index='UserID', columns='MovieID', values='Rating',
+    def fit(self, rading_df: pd.DataFrame) -> None:
+        self._ratings_df = rading_df.copy()
+        self._user_movie_matrix = self._ratings_df.pivot_table(index='UserID',
+                                                               columns='MovieID',
+                                                               values='Rating',
                                                                fill_value=0)
         self._sim_matrix = cosine_similarity(self._user_movie_matrix)
 
-    def predict(self, user_id) -> set[Any]:
+    def predict(self, user_id, film_id, average_rating_threashold=4) -> set[Any]:
 
-        films_to_recommend, indexes_of_similar_users = self.find_films_that_other_users_like_but_current_user_havent_watched(user_id)
-        filtered_recommendations = self.find_only_highly_rated_movies(films_to_recommend, indexes_of_similar_users)
+        rates_that_users_given, indexes_of_similar_users = self.__find_films_that_other_users_like_but_current_user_havent_watched(user_id, film_id)
+        # filtered_recommendations = self.__find_only_highly_rated_movies(rates_that_users_given, indexes_of_similar_users, average_rating_threashold)
+        rates_that_users_given = np.array(rates_that_users_given)
+        filtered_rates = [rate for rate in rates_that_users_given if rate >= average_rating_threashold]
+        return np.mean(filtered_rates)
 
-        return filtered_recommendations
-
-    def find_films_that_other_users_like_but_current_user_havent_watched(self, user_id, num_of_similar_users = 10):
+    def __find_films_that_other_users_like_but_current_user_havent_watched(self, user_id, film_id):
         current_user = self._sim_matrix[user_id]
         indexes_of_similar_users = current_user.argsort()[::-1][:self._num_of_similar_users]
 
-        films_to_recommend = set()
+        rates_that_users_given = []
         for similar_user_index in indexes_of_similar_users:
-            film_rates = self._user_movie_matrix.iloc[similar_user_index]
-            for film_index, film_rate in film_rates.items():
-                if self._user_movie_matrix.iloc[user_id][film_index] == 0 and film_rate != 0:
-                    films_to_recommend.add(film_index)
+            film_rate = self._user_movie_matrix.iloc[similar_user_index][film_id]
+            if film_rate > 0:
+                rates_that_users_given.append(film_rate)
 
-        return films_to_recommend, indexes_of_similar_users
+        return rates_that_users_given, indexes_of_similar_users
 
-    def find_only_highly_rated_movies(self, films_to_check, indexes_of_similar_users, average_rating_threashold=4):
-        filtered_recommendations = set()
-
-        for film_index in films_to_check:
-            all_film_rates = []
-            for similar_user_index in indexes_of_similar_users:
-                film = self._ratings_df[self._ratings_df['MovieID'] == film_index]
-                if similar_user_index < len(film['Rating']):
-                    rating = film['Rating'].iloc[similar_user_index]
-                    all_film_rates.append(rating)
-
-            average_rating = np.mean(all_film_rates)
-            if average_rating >= average_rating_threashold:
-                filtered_recommendations.add(film_index)
-
-        return filtered_recommendations
+    # def __find_only_highly_rated_movies(self, films_to_check, indexes_of_similar_users, average_rating_threashold):
+    #     filtered_recommendations = set()
+    #     predicted_rates = []
+    #     for film_index in films_to_check:
+    #         all_film_rates = []
+    #         for similar_user_index in indexes_of_similar_users:
+    #             film = self._ratings_df[self._ratings_df['MovieID'] == film_index]
+    #             if similar_user_index < len(film['Rating']):
+    #                 rating = film['Rating'].iloc[similar_user_index]
+    #                 all_film_rates.append(rating)
+    #
+    #         average_rating = np.mean(all_film_rates)
+    #         if average_rating >= average_rating_threashold:
+    #             filtered_recommendations.add(film_index)
+    #             predicted_rates.append(average_rating)
+    #
+    #     return filtered_recommendations
