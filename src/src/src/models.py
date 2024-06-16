@@ -85,7 +85,7 @@ class ItemItemModel:
             if film_rate > 0:
                 rates_that_users_given.append(film_rate)
 
-        return films_to_recommend, indexes_of_similar_users
+        return rates_that_users_given, indexes_of_similar_items
 
     def find_only_highly_rated_movies(self, films_to_check, indexes_of_similar_users, average_rating_threashold=4):
         filtered_recommendations = set()
