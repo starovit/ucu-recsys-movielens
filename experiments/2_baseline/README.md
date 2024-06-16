@@ -43,12 +43,7 @@ def ml_metrics(true_scores, predicted_scores, threshold=4):
 def predictive_metrics(test: pd.DataFrame, predicted_scores, 
                        k=10, threshold=4):
     
-    df = test.copy()
-    df["RatingPred"] = predicted_scores
-    prec_at_k, n_users_with_k = precision_at_k(df, k, threshold)
-    rec_at_k = recall_at_k(df, k, threshold)
-    avrg_prec_at_k = average_precision_at_k(df, k, threshold)
-
+    ...
     return {"k": k,
             "threshold": threshold,
             "precision_at_k": round(prec_at_k, 3),
@@ -61,10 +56,7 @@ def predictive_metrics(test: pd.DataFrame, predicted_scores,
 Threshold is used to convert scores to categorical values. K can be speficied.
 ```python
 def rank_metrics(test: pd.DataFrame, predicted_scores,  k=10, threshold=4):
-    df = test.copy()
-    df["RatingPred"] = predicted_scores
-    mean_r_r = mean_reciprocal_rank(df, threshold)
-    hit_r = hit_rate(df, k, threshold=4)
+    ...
     return {"mean_reciprocal_rank": round(mean_r_r, 3),
             "hit_rate": round(hit_r, 3)
             }
