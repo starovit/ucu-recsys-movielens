@@ -15,7 +15,7 @@ In general A/B testing involves creating 2 groups of control people groups
 - **Control Group (A)**: Users receive recommendations from the current system.
 - **Treatment Group (B)**: Users receive recommendations from the new algorithm
 
-How to simulate it, who knows
+How to simulate it without live environment? Who knows
 
 ### 4. **Segment the Users**
 Randomly assign users to either the control group or the treatment group, ensuring that each group is statistically similar.
@@ -55,7 +55,7 @@ def get_recommendations(user_id, group):
 ```
 
 ### 6. **Run the Experiment**
-Deploy the changes to the live environment, ... oh we don't have any... yeah =(
+Next we would deploy the changes to the live environment ... oh we don't have any ... yeah =(
 
 ### 7. **Collect Data**
 
@@ -78,4 +78,4 @@ else:
 ```
 
 ### 9. **Make Decisions**
-Based on the analysis, decide we should decide whether to fully implement the new recommendation algorithm, make further adjustments, or discard the changes.
+Based on the analysis, we should decide whether to fully implement the new recommendation algorithm, make further adjustments, or discard the changes.
