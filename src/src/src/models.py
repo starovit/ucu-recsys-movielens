@@ -2,11 +2,18 @@ from typing import Set, Any
 
 import numpy as np
 import pandas as pd
+from scipy import stats
+
 
 from sklearn.metrics.pairwise import linear_kernel
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+import torch
+import torch.nn as nn
+from torch.utils.data import Dataset, DataLoader
+import torch.optim as optim
+from tqdm import tqdm
 
 class BaseModelAverage:
     """A simple baseline model that predicts movie ratings based on average ratings."""
@@ -151,3 +158,62 @@ class UserUserModel:
         pred = filtered_df[filtered_df != 0].mean()
         movies = pred[pred.notna()].sort_values(ascending=False)
         return movies[:n_movies].index.values
+    
+
+
+class MovieDataset(Dataset):
+    def __init__(self, dataframe):
+        self.features = dataframe.drop('Rating', axis=1).values
+        self.labels = dataframe['Rating'].values
+
+    def __len__(self):
+        return len(self.labels)
+
+    def __getitem__(self, idx):
+        return torch.tensor(self.features[idx], dtype=torch.float32), torch.tensor(self.labels[idx], dtype=torch.float32)
+
+class MovieRatingNN(nn.Module):
+    def __init__(self, num_features):
+        super(MovieRatingNN, self).__init__()
+        self.layer1 = nn.Linear(num_features, 128)
+        self.layer2 = nn.Linear(128, 64)
+        self.output_reg = nn.Linear(64, 1)
+
+    def forward(self, x):
+        x = nn.ReLU()(self.layer1(x))
+        x = nn.ReLU()(self.layer2(x))
+        x = self.output_reg(x)
+        x = torch.sigmoid(x) * 4 + 1
+        return x
+
+class IncrementalABTester:
+    def __init__(self):
+        self.true_ratings = np.array([])
+        self.predictions_baseline = np.array([])
+        self.predictions_nn = np.array([])
+
+    def add_data(self, true_rating, prediction_baseline, prediction_nn):
+        self.true_ratings = np.append(self.true_ratings, true_rating)
+        self.predictions_baseline = np.append(self.predictions_baseline, prediction_baseline)
+        self.predictions_nn = np.append(self.predictions_nn, prediction_nn)
+
+    def rmse(self, predictions):
+        return np.sqrt(np.mean((self.true_ratings - predictions) ** 2))
+
+    def run_tests(self):
+        rmse_baseline = self.rmse(self.predictions_baseline)
+        rmse_nn = self.rmse(self.predictions_nn)
+        
+        # Conduct a paired t-test if we have enough data
+        if len(self.true_ratings) > 1:
+            _, p_value = stats.ttest_rel(self.predictions_baseline, self.predictions_nn)
+        else:
+            p_value = np.nan  # Not enough data to test
+        
+        results = {
+            'rmse_baseline': rmse_baseline,
+            'rmse_nn': rmse_nn,
+            'p_value': p_value
+        }
+        
+        return results

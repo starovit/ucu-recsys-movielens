@@ -29,7 +29,11 @@ class TrainTestSplitter:
         return train, test
 
     @classmethod
-    def split_by_percent(self, df, percent=0.8, random_split=False):
+    def split_by_percent(self, df, percent=0.8, random_split=False,
+                         sort_by_datetime=False):
+        df = df.copy()
+        if sort_by_datetime:
+            df = df.sort_values("Datetime")
         if random_split:
             df = df.sample(frac=1, random_state=1)
         split_index = int(df.shape[0] * percent)
@@ -53,9 +57,46 @@ class TrainTestSplitter:
             return group, None
 
 
-
-
-
 def cosine_similarity(vector1, vector2):
     cosine = np.dot(vector1, vector2) / (norm(vector2) * norm(vector2))
     return cosine
+
+
+
+# deep-learning data-prep functions
+
+def map_year_to_decade(year):
+    try:
+        year = int(year)
+        if 1900 <= year <= 2000:
+            return f"{(year // 10) * 10}"
+        else:
+            return "Other"
+    except:
+        return "Other"
+    
+def compute_rolling_averages(group):
+    return group.expanding().mean().shift()
+    
+def dl_data_pipeline(df_movies, df_users, df_ratings):
+    df_users = df_users[["UserID", "Gender", "Age", "Occupation", "State"]]
+    categorical_features = ['Gender', 'Age', 'Occupation', 'State']
+    df_users = pd.get_dummies(df_users, columns=categorical_features, dtype=int)
+
+    df_movies = df_movies.drop(["Title", "Genres"], axis=1)
+    df_movies['Decade'] = df_movies['Year'].apply(map_year_to_decade)
+    df_movies = pd.get_dummies(df_movies, columns=['Decade'])
+    df_movies = df_movies.drop(["Year"], axis=1).astype(int)
+
+    df_ratings = df_ratings[["UserID", "MovieID", "Rating", "Datetime"]]
+    df_ratings = df_ratings.sort_values("Datetime")
+    df_ratings['AvgUserRating'] = df_ratings.groupby('UserID')['Rating'].transform(compute_rolling_averages)
+    df_ratings['AvgMovieRating'] = df_ratings.groupby('MovieID')['Rating'].transform(compute_rolling_averages)
+    df_ratings = df_ratings.drop("Datetime", axis=1)
+
+    df_all = df_ratings.merge(df_users, on="UserID").merge(df_movies, on="MovieID")
+
+    return df_all
+
+
+
