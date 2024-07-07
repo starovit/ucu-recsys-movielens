@@ -3,7 +3,10 @@ from sklearn.metrics import mean_squared_error, f1_score
 
 import numpy as np
 from tqdm import tqdm
-
+from src.metrics import ml_metrics
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import precision_score, recall_score
+from sklearn.metrics import f1_score, roc_auc_score
 
 
 class AlternatingLeastSquares:
@@ -57,3 +60,25 @@ class AlternatingLeastSquares:
         binary_interactions = (interaction_matrix >= threshold).astype(int)
         f1 = f1_score(np.array(binary_interactions).flatten(), np.array(binary_predictions).flatten())
         return f1
+
+    def calculate_ml_metrics(self, interaction_matrix, threshold=0.5):
+        if isinstance(interaction_matrix, pd.DataFrame):
+            print("dataframe detected")
+            interaction_matrix = interaction_matrix.values
+
+        predictions = self.predict()
+
+        mae = mean_absolute_error(interaction_matrix, predictions)
+        rmse = np.sqrt(mean_squared_error(interaction_matrix, predictions))
+
+        binary_predictions = (predictions >= threshold).astype(int)
+        binary_interactions = (interaction_matrix >= threshold).astype(int)
+        precision = precision_score(binary_predictions, binary_interactions, pos_label='positive', average='micro')
+        recall = recall_score(binary_predictions, binary_interactions,pos_label='positive', average='micro')
+        f1 = f1_score(np.array(binary_interactions).flatten(), np.array(binary_predictions).flatten())
+
+        return {"mae": round(mae, 3),
+                "rmse": round(rmse, 3),
+                "precision": round(precision, 3),
+                "recall": round(recall, 3),
+                "f1": round(f1, 3) }
