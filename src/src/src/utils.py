@@ -49,6 +49,20 @@ class TrainTestSplitter:
         test = pd.concat([x for x in test_list if x is not None])
         return train, test
 
+    @staticmethod
+    def split_by_deleting_reviews(df, percent_of_reviews_to_delete=0.25):
+        test = df.copy()
+        train = df.copy()
+        non_zero_indices = np.argwhere(train.values != 0)
+
+        num_to_zero = int(len(non_zero_indices) * percent_of_reviews_to_delete)
+
+        indices_to_zero = non_zero_indices[np.random.choice(non_zero_indices.shape[0], num_to_zero, replace=False)]
+        for idx in indices_to_zero:
+            train.iat[idx[0], idx[1]] = 0
+
+        return train, test, indices_to_zero
+
 
     def split_user_reviews(group, n_reviews_in_test):
         if len(group) > n_reviews_in_test:
