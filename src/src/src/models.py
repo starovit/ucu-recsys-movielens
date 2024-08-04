@@ -8,12 +8,16 @@ from scipy import stats
 from sklearn.metrics.pairwise import linear_kernel
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.metrics import label_ranking_average_precision_score, ndcg_score
+from src.metrics import ml_metrics
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 import torch.optim as optim
 from tqdm import tqdm
+
 
 class BaseModelAverage:
     """A simple baseline model that predicts movie ratings based on average ratings."""
@@ -217,3 +221,76 @@ class IncrementalABTester:
         }
         
         return results
+    
+    
+
+class MovieLensDataset(Dataset):
+    def __init__(self, data):
+        self.users = torch.tensor(data['user_id'].values, dtype=torch.long)
+        self.movies = torch.tensor(data['movie_id'].values, dtype=torch.long)
+        self.ratings = torch.tensor(data['Rating'].values, dtype=torch.float32)
+    
+    def __len__(self):
+        return len(self.ratings)
+    
+    def __getitem__(self, idx):
+        return self.users[idx], self.movies[idx], self.ratings[idx]
+
+
+
+class RankingNetwork(nn.Module):
+    def __init__(self, num_users, num_movies, embedding_size=50):
+        super(RankingNetwork, self).__init__()
+        self.user_embedding = nn.Embedding(num_users, embedding_size)
+        self.movie_embedding = nn.Embedding(num_movies, embedding_size)
+        self.fc1 = nn.Linear(embedding_size * 2, 64)
+        self.fc2 = nn.Linear(64, 1)
+    
+    def forward(self, user_ids, movie_ids):
+        user_embedded = self.user_embedding(user_ids)
+        movie_embedded = self.movie_embedding(movie_ids)
+        x = torch.cat([user_embedded, movie_embedded], dim=-1)
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
+    def predict_all_movies(self, user_id, num_top_movies=10):
+        self.eval()
+        with torch.no_grad():
+            all_movie_ids = torch.arange(self.movie_embedding.num_embeddings)
+            user_tensor = torch.tensor([user_id] * len(all_movie_ids), dtype=torch.long)
+            predicted_ratings = self.forward(user_tensor, all_movie_ids).squeeze()
+            _, top_indices = torch.topk(predicted_ratings, num_top_movies)
+            top_movie_ids = all_movie_ids[top_indices].tolist()
+            top_ratings = predicted_ratings[top_indices].tolist()
+        
+        results_df = pd.DataFrame({
+            'MovieID': top_movie_ids,
+            'PredictedRating': top_ratings
+        })
+        return results_df
+    
+    def evaluate(self, data_loader):
+        self.eval()
+        all_true_scores = []
+        all_predicted_scores = []
+
+        with torch.no_grad():
+            for users, movies, ratings in data_loader:
+                outputs = self(users, movies).squeeze()
+                all_predicted_scores.extend(outputs.numpy())
+                all_true_scores.extend(ratings.numpy())
+
+        true_scores = np.array(all_true_scores)
+        predicted_scores = np.array(all_predicted_scores)
+
+        metrics = ml_metrics(true_scores, predicted_scores)
+
+        true_relevance = (true_scores >= 4).astype(int) 
+        sorted_indices = np.argsort(-predicted_scores) 
+        sorted_true_relevance = true_relevance[sorted_indices]
+
+        metrics['map'] = label_ranking_average_precision_score([sorted_true_relevance], [sorted_indices])
+        metrics['ndcg'] = ndcg_score([sorted_true_relevance], [predicted_scores[sorted_indices]])
+
+        return metrics
